@@ -1,0 +1,504 @@
+# AI信息摄入系统 - 主题配置
+# 每个主题包含: name(名称), keywords(关键词列表), patterns(正则表达式), boost(评分加权), must_read_if_score_above(必读阈值)
+
+# ============================================
+# 核心技术主题
+# ============================================
+core_tech:
+  - name: "LLM"
+    display_name: "大语言模型"
+    keywords:
+      - "llm"
+      - "large language model"
+      - "language model"
+      - "gpt"
+      - "claude"
+      - "gemini"
+      - "llama"
+      - "mistral"
+      - "transformer"
+    patterns:
+      - "GPT-[0-9]"
+      - "Claude [0-9]"
+      - "Gemini [0-9]"
+      - "Llama[- ][0-9]"
+    boost: 1.3
+    must_read_if_score_above: 75
+
+  - name: "Agent"
+    display_name: "AI Agent"
+    keywords:
+      - "agent"
+      - "autonomous"
+      - "tool use"
+      - "function calling"
+      - "multi-agent"
+      - "agentic"
+      - "reasoning"
+      - "planning"
+    patterns:
+      - "agent[s]?"
+      - "ReAct"
+      - "CoT"
+    boost: 1.2
+    must_read_if_score_above: 70
+
+  - name: "RAG"
+    display_name: "检索增强生成"
+    keywords:
+      - "rag"
+      - "retrieval"
+      - "vector database"
+      - "embedding"
+      - "semantic search"
+      - "knowledge base"
+      - "document qa"
+    patterns:
+      - "RAG"
+      - "retrieval[- ]augmented"
+    boost: 1.2
+    must_read_if_score_above: 70
+
+  - name: "Eval"
+    display_name: "评测"
+    keywords:
+      - "evaluation"
+      - "benchmark"
+      - "leaderboard"
+      - "metric"
+      - "score"
+      - "performance"
+      - "accuracy"
+      - "quality"
+      - "testing"
+    patterns:
+      - "benchmark"
+      - "MMLU"
+      - "HumanEval"
+      - "GSM8K"
+    boost: 1.15
+    must_read_if_score_above: 75
+
+  - name: "Multimodal"
+    display_name: "多模态"
+    keywords:
+      - "multimodal"
+      - "vision"
+      - "image"
+      - "video"
+      - "audio"
+      - "speech"
+      - "ocr"
+      - "visual"
+      - "vlm"
+    patterns:
+      - "vision[- ]language"
+      - "VLM"
+      - "GPT-4[Vv]"
+    boost: 1.1
+    must_read_if_score_above: 70
+
+# ============================================
+# 训练与优化
+# ============================================
+training:
+  - name: "Training"
+    display_name: "训练"
+    keywords:
+      - "training"
+      - "pretrain"
+      - "fine-tune"
+      - "finetune"
+      - "lora"
+      - "qlora"
+      - "peft"
+      - "sft"
+      - "rlhf"
+      - "dpo"
+      - "dataset"
+    patterns:
+      - "fine[- ]tun"
+      - "RLHF"
+      - "DPO"
+      - "LoRA"
+    boost: 1.1
+    must_read_if_score_above: 70
+
+  - name: "Alignment"
+    display_name: "对齐"
+    keywords:
+      - "alignment"
+      - "safety"
+      - "rlhf"
+      - "constitutional ai"
+      - "harmless"
+      - "helpful"
+      - "honest"
+      - "jailbreak"
+      - "red team"
+    patterns:
+      - "RLHF"
+      - "constitutional AI"
+    boost: 1.05
+    must_read_if_score_above: 75
+
+# ============================================
+# 推理与服务
+# ============================================
+inference:
+  - name: "Inference"
+    display_name: "推理"
+    keywords:
+      - "inference"
+      - "serving"
+      - "deployment"
+      - "latency"
+      - "throughput"
+      - "optimization"
+      - "quantization"
+      - "pruning"
+      - "distillation"
+      - "compilation"
+    patterns:
+      - "inference[- ]optim"
+      - "faster inference"
+    boost: 1.3
+    must_read_if_score_above: 70
+
+  - name: "Serving"
+    display_name: "模型服务"
+    keywords:
+      - "serving"
+      - "vllm"
+      - "tgi"
+      - "text generation inference"
+      - "deployment"
+      - "api server"
+      - "model server"
+      - "trt-llm"
+      - "tensorrt"
+    patterns:
+      - "vLLM"
+      - "TGI"
+      - "TensorRT-LLM"
+    boost: 1.25
+    must_read_if_score_above: 70
+
+  - name: "KV Cache"
+    display_name: "KV缓存"
+    keywords:
+      - "kv cache"
+      - "key-value cache"
+      - "cache optimization"
+      - "pagedattention"
+      - "continuous batching"
+    patterns:
+      - "KV[- ]cache"
+      - "PagedAttention"
+    boost: 1.15
+    must_read_if_score_above: 70
+
+  - name: "Quantization"
+    display_name: "量化"
+    keywords:
+      - "quantization"
+      - "int8"
+      - "int4"
+      - "fp8"
+      - "gptq"
+      - "awq"
+      - "gguf"
+      - "ggml"
+      - "bits and bytes"
+    patterns:
+      - "quantiz"
+      - "INT[0-9]"
+      - "FP[0-9]"
+      - "GPTQ"
+      - "AWQ"
+    boost: 1.15
+    must_read_if_score_above: 70
+
+# ============================================
+# 基础设施
+# ============================================
+infra:
+  - name: "CUDA"
+    display_name: "CUDA/GPU"
+    keywords:
+      - "cuda"
+      - "gpu"
+      - "nvidia"
+      - "h100"
+      - "a100"
+      - "triton"
+      - "cudnn"
+      - "kernel"
+      - "flash attention"
+    patterns:
+      - "[AH][0-9]{3}"
+      - "FlashAttention"
+    boost: 1.1
+    must_read_if_score_above: 75
+
+  - name: "Distributed"
+    display_name: "分布式"
+    keywords:
+      - "distributed"
+      - "parallel"
+      - "multi-gpu"
+      - "multi-node"
+      - "fsdp"
+      - "deepspeed"
+      - "megatron"
+      - "tensor parallel"
+      - "pipeline parallel"
+    patterns:
+      - "distributed training"
+      - "FSDP"
+      - "DeepSpeed"
+    boost: 1.1
+    must_read_if_score_above: 70
+
+  - name: "Cloud"
+    display_name: "云平台"
+    keywords:
+      - "aws"
+      - "gcp"
+      - "azure"
+      - "cloud"
+      - "sagemaker"
+      - "vertex ai"
+      - "bedrock"
+      - "lambda"
+    patterns:
+      - "AWS.*AI"
+      - "GCP.*AI"
+      - "Azure.*AI"
+    boost: 1.05
+    must_read_if_score_above: 70
+
+# ============================================
+# 工具与框架
+# ============================================
+tooling:
+  - name: "LangChain"
+    display_name: "LangChain"
+    keywords:
+      - "langchain"
+      - "langgraph"
+      - "langsmith"
+      - "lcel"
+    patterns:
+      - "LangChain"
+      - "LangGraph"
+    boost: 1.25
+    must_read_if_score_above: 65
+
+  - name: "LlamaIndex"
+    display_name: "LlamaIndex"
+    keywords:
+      - "llamaindex"
+      - "llama index"
+      - "llama-index"
+    patterns:
+      - "LlamaIndex"
+    boost: 1.2
+    must_read_if_score_above: 65
+
+  - name: "vLLM"
+    display_name: "vLLM"
+    keywords:
+      - "vllm"
+    patterns:
+      - "vLLM"
+    boost: 1.25
+    must_read_if_score_above: 65
+
+  - name: "Transformers"
+    display_name: "Transformers"
+    keywords:
+      - "transformers"
+      - "huggingface"
+      - "hugging face"
+      - "hf"
+    patterns:
+      - "🤗.*transformers"
+    boost: 1.2
+    must_read_if_score_above: 65
+
+  - name: "PyTorch"
+    display_name: "PyTorch"
+    keywords:
+      - "pytorch"
+      - "torch"
+    patterns:
+      - "PyTorch [0-9]"
+    boost: 1.15
+    must_read_if_score_above: 70
+
+# ============================================
+# 厂商与公司
+# ============================================
+vendors:
+  - name: "OpenAI"
+    display_name: "OpenAI"
+    keywords:
+      - "openai"
+      - "gpt-4"
+      - "gpt-5"
+      - "chatgpt"
+      - "dall-e"
+      - "whisper"
+      - "sora"
+    patterns:
+      - "OpenAI"
+      - "GPT-[0-9]"
+    boost: 1.3
+    must_read_if_score_above: 65
+
+  - name: "Anthropic"
+    display_name: "Anthropic"
+    keywords:
+      - "anthropic"
+      - "claude"
+    patterns:
+      - "Anthropic"
+      - "Claude [0-9]"
+    boost: 1.3
+    must_read_if_score_above: 65
+
+  - name: "Google"
+    display_name: "Google"
+    keywords:
+      - "google"
+      - "gemini"
+      - "bard"
+      - "palm"
+      - "deepmind"
+    patterns:
+      - "Gemini [0-9]"
+      - "PaLM"
+    boost: 1.2
+    must_read_if_score_above: 70
+
+  - name: "Meta"
+    display_name: "Meta"
+    keywords:
+      - "meta"
+      - "facebook"
+      - "llama"
+      - "pytorch"
+    patterns:
+      - "Meta AI"
+      - "Llama[- ][0-9]"
+    boost: 1.2
+    must_read_if_score_above: 70
+
+  - name: "Mistral"
+    display_name: "Mistral"
+    keywords:
+      - "mistral"
+      - "mixtral"
+    patterns:
+      - "Mistral"
+      - "Mixtral"
+    boost: 1.15
+    must_read_if_score_above: 70
+
+  - name: "NVIDIA"
+    display_name: "NVIDIA"
+    keywords:
+      - "nvidia"
+      - "cuda"
+      - "tensorrt"
+      - "nemo"
+      - "triton"
+    patterns:
+      - "NVIDIA"
+    boost: 1.2
+    must_read_if_score_above: 70
+
+# ============================================
+# 产品与API
+# ============================================
+products:
+  - name: "API"
+    display_name: "API/SDK"
+    keywords:
+      - "api"
+      - "sdk"
+      - "endpoint"
+      - "rest"
+      - "graphql"
+      - "changelog"
+      - "breaking change"
+      - "deprecat"
+      - "migration"
+    patterns:
+      - "API.*change"
+      - "breaking.*change"
+      - "deprecat"
+    boost: 1.25
+    must_read_if_score_above: 65
+
+  - name: "Pricing"
+    display_name: "定价"
+    keywords:
+      - "pricing"
+      - "cost"
+      - "price"
+      - "cheaper"
+      - "expensive"
+      - "free tier"
+      - "credit"
+    patterns:
+      - "price.*change"
+      - "pricing.*update"
+    boost: 1.2
+    must_read_if_score_above: 70
+
+# ============================================
+# 特殊主题
+# ============================================
+special:
+  - name: "Security"
+    display_name: "安全"
+    keywords:
+      - "security"
+      - "vulnerability"
+      - "cve"
+      - "exploit"
+      - "patch"
+      - "jailbreak"
+      - "prompt injection"
+    patterns:
+      - "CVE-[0-9]{4}"
+      - "security.*issue"
+    boost: 1.3
+    must_read_if_score_above: 75
+
+  - name: "Research"
+    display_name: "研究"
+    keywords:
+      - "paper"
+      - "arxiv"
+      - "research"
+      - "sota"
+      - "state-of-the-art"
+      - "novel"
+      - "breakthrough"
+    patterns:
+      - "arXiv:[0-9]{4}\\.[0-9]{4,5}"
+    boost: 1.0
+    must_read_if_score_above: 80
+
+# ============================================
+# 说明：
+# - keywords: 关键词列表（不区分大小写）
+# - patterns: 正则表达式列表（区分大小写）
+# - boost: 评分加权系数（1.0 = 无加权）
+# - must_read_if_score_above: 达到此分数且命中此主题时自动标记为必读
+#
+# 新增主题的方法见 DESIGN.md "5.2 新增主题/关键词"
+# ============================================

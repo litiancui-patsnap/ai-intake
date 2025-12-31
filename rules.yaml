@@ -1,0 +1,229 @@
+# AI信息摄入系统 - 评分与过滤规则配置
+
+# ============================================
+# 评分权重配置
+# ============================================
+scoring:
+  weights:
+    research_signal: 0.25      # 研究信号权重 (新模型/新方法/评测数据)
+    engineering_signal: 0.35   # 工程信号权重 (API变更/性能提升/SDK发布) - 工程师优先
+    authority: 0.20            # 来源权威度权重
+    freshness: 0.10            # 新鲜度权重
+    preference: 0.10           # 个人偏好权重
+
+  # 研究信号关键词 (每命中一个 +5分，最高25分)
+  research_keywords:
+    high_value:  # +5分
+      - "new model"
+      - "sota"
+      - "state-of-the-art"
+      - "breakthrough"
+      - "novel"
+      - "first"
+      - "benchmark"
+      - "outperform"
+      - "surpass"
+      - "accuracy"
+    medium_value:  # +3分
+      - "paper"
+      - "research"
+      - "arxiv"
+      - "experiment"
+      - "evaluation"
+      - "result"
+      - "dataset"
+    low_value:  # +1分
+      - "study"
+      - "analysis"
+      - "survey"
+
+  # 工程信号关键词 (每命中一个 +7分，最高35分)
+  engineering_keywords:
+    critical:  # +7分
+      - "breaking change"
+      - "deprecat"
+      - "migration"
+      - "security"
+      - "vulnerability"
+      - "critical"
+      - "urgent"
+    high_value:  # +5分
+      - "release"
+      - "launched"
+      - "available"
+      - "api"
+      - "sdk"
+      - "performance"
+      - "faster"
+      - "optimization"
+      - "speedup"
+      - "improvement"
+    medium_value:  # +3分
+      - "update"
+      - "feature"
+      - "support"
+      - "integration"
+      - "tutorial"
+      - "guide"
+      - "documentation"
+      - "example"
+
+  # 新鲜度衰减配置
+  freshness:
+    max_score: 10
+    decay_hours: 48  # 48小时后衰减到0
+
+# ============================================
+# 必读规则 (满足任一条件即标记为Must Read)
+# ============================================
+must_read_rules:
+  # 规则1: 高分且来自高权威源
+  - condition: "score >= 85 and authority_score >= 90"
+    reason: "高分+高权威源"
+
+  # 规则2: 关键公司的重要更新
+  - condition: "(source_contains('OpenAI') or source_contains('Anthropic')) and (contains('breaking') or contains('launch') or contains('release'))"
+    reason: "OpenAI/Anthropic重要更新"
+
+  # 规则3: 安全相关
+  - condition: "contains('security') or contains('vulnerability') or contains('CVE')"
+    reason: "安全问题"
+
+  # 规则4: API破坏性变更
+  - condition: "contains('breaking change') or contains('deprecat')"
+    reason: "破坏性变更"
+
+  # 规则5: 重大性能提升
+  - condition: "contains_any(['10x faster', '10x speedup', '100x faster', 'order of magnitude'])"
+    reason: "重大性能提升"
+
+  # 规则6: 新模型发布
+  - condition: "score >= 80 and contains_any(['GPT-', 'Claude', 'Gemini', 'Llama']) and contains_any(['release', 'launch', 'available'])"
+    reason: "主流模型新版本"
+
+# ============================================
+# 过滤规则 (满足任一条件则过滤掉)
+# ============================================
+filter_rules:
+  # 低分过滤
+  - condition: "score < 30"
+    reason: "分数过低"
+
+  # 纯理论论文 (无实用价值)
+  - condition: "source_contains('arxiv') and score < 60 and not contains_any(['code', 'implementation', 'opensource', 'github'])"
+    reason: "纯理论论文且无代码"
+
+  # 重复/相似内容
+  - condition: "is_duplicate"
+    reason: "重复内容"
+
+  # 过时内容
+  - condition: "age_days > 7"
+    reason: "内容过时"
+
+# ============================================
+# 输出配置
+# ============================================
+output:
+  daily:
+    max_items: 40           # 日报最多条目
+    must_read_min: 0        # 必读最少条目 (不足则按分数补齐)
+    must_read_max: 10       # 必读最多条目
+    min_score: 40           # 最低分数阈值
+    group_by: topic         # 分组方式: topic, source, score
+    sort_by: score          # 排序方式: score, published, source
+
+  weekly:
+    max_items: 120          # 周报最多条目
+    trend_count: 5          # 趋势数量
+    must_do_count: 3        # 必做事项数量
+    watchlist_count: 5      # 下周关注清单数量
+    min_score: 50           # 最低分数阈值
+
+  # Markdown格式配置
+  markdown:
+    include_score_breakdown: true    # 是否包含评分详解
+    include_action: true              # 是否包含行动建议
+    include_related_links: true       # 是否包含相关链接
+    max_summary_length: 180          # 摘要最大字数
+
+# ============================================
+# 个人偏好配置 (影响preference评分)
+# ============================================
+preferences:
+  # 优先关注的公司 (命中 +3分)
+  priority_vendors:
+    - "OpenAI"
+    - "Anthropic"
+    - "Google"
+    - "Meta"
+    - "NVIDIA"
+
+  # 优先关注的工具/框架 (命中 +2分)
+  priority_tools:
+    - "LangChain"
+    - "vLLM"
+    - "Transformers"
+    - "PyTorch"
+
+  # 优先关注的主题 (命中 +2分)
+  priority_topics:
+    - "Inference"
+    - "Serving"
+    - "API"
+    - "LLM"
+
+  # 低优先级主题 (命中 -2分)
+  low_priority_topics:
+    - "TensorFlow"  # 不太关注TensorFlow
+
+# ============================================
+# 时区与语言配置
+# ============================================
+locale:
+  timezone: "Asia/Tokyo"      # 时区
+  language: "zh-CN"           # 输出语言
+  date_format: "%Y-%m-%d"     # 日期格式
+  time_format: "%H:%M"        # 时间格式
+
+# ============================================
+# 去重配置
+# ============================================
+dedup:
+  url_similarity_threshold: 0.9      # URL相似度阈值
+  title_similarity_threshold: 0.85   # 标题相似度阈值
+  content_similarity_threshold: 0.95 # 内容相似度阈值
+  lookback_days: 30                  # 回溯天数
+
+# ============================================
+# LLM配置 (可选)
+# ============================================
+llm:
+  enabled: true              # 是否启用LLM摘要
+  provider: "openai"         # openai 或 anthropic
+  model: "gpt-4o-mini"       # 模型名称
+  max_tokens: 500            # 最大token数
+  temperature: 0.3           # 温度
+  timeout: 30                # 超时时间(秒)
+  batch_size: 10             # 批处理大小
+  fallback_to_extractive: true  # LLM失败时是否降级到extractive
+
+# ============================================
+# 网络配置
+# ============================================
+network:
+  timeout: 30                # 请求超时(秒)
+  max_retries: 3             # 最大重试次数
+  retry_delay: 2             # 重试延迟(秒)
+  concurrent_fetches: 10     # 并发采集数量
+  user_agent: "AI-Intake/1.0 (https://github.com/yourname/ai-intake)"
+
+# ============================================
+# 说明：
+# - scoring.weights: 各维度权重，总和应为1.0
+# - must_read_rules: 条件使用Python表达式，可用函数: contains(), source_contains(), contains_any()
+# - filter_rules: 同上
+# - preferences: 个人偏好配置，影响最终评分
+#
+# 调整评分规则的方法见 DESIGN.md "5.3 调整评分规则"
+# ============================================

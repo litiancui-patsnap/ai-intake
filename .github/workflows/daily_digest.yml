@@ -1,0 +1,49 @@
+name: Daily AI Digest
+
+on:
+  schedule:
+    # UTC 23:00 = JST 08:00 (Asia/Tokyo)
+    - cron: '0 23 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  generate-daily-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run daily digest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m src.main daily --verbose
+
+      - name: Upload daily report
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-report-${{ github.run_number }}
+          path: outputs/daily/*.md
+          retention-days: 90
+
+      - name: Commit reports (optional)
+        if: false  # 设置为true可启用自动commit
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add outputs/
+          git commit -m "📊 Daily digest: $(date +'%Y-%m-%d')" || echo "No changes to commit"
+          git push

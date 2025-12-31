@@ -1,0 +1,49 @@
+name: Weekly AI Digest
+
+on:
+  schedule:
+    # UTC 00:00 Monday = JST 09:00 Monday
+    - cron: '0 0 * * 1'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  generate-weekly-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run weekly digest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m src.main weekly --verbose
+
+      - name: Upload weekly report
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-report-${{ github.run_number }}
+          path: outputs/weekly/*.md
+          retention-days: 365
+
+      - name: Commit reports (optional)
+        if: false  # 设置为true可启用自动commit
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add outputs/
+          git commit -m "📊 Weekly digest: Week $(date +'%Y-W%V')" || echo "No changes to commit"
+          git push

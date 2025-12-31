@@ -1,0 +1,295 @@
+# AI信息摄入系统 - 信息源配置
+# 每个源包含: name(名称), type(类型), url(地址), authority_score(权威度0-100), tags(默认标签), enabled(是否启用)
+
+# ============================================
+# A. 研究/论文源
+# ============================================
+research:
+  - name: "OpenAI Research"
+    type: rss
+    url: "https://openai.com/blog/rss.xml"
+    authority_score: 95
+    tags: [research, openai, llm]
+    enabled: true
+
+  - name: "Anthropic Research"
+    type: rss
+    url: "https://www.anthropic.com/research/rss.xml"
+    authority_score: 95
+    tags: [research, anthropic, llm, safety]
+    enabled: false  # 已失效: 404 Not Found
+
+  - name: "Google AI Blog"
+    type: rss
+    url: "https://blog.research.google/feeds/posts/default"
+    authority_score: 90
+    tags: [research, google, ai]
+    enabled: false  # 已失效: 502 Bad Gateway
+
+  - name: "Meta AI Blog"
+    type: rss
+    url: "https://ai.meta.com/blog/rss/"
+    authority_score: 85
+    tags: [research, meta, llm]
+    enabled: false  # SSL错误
+
+  - name: "Hugging Face Blog"
+    type: rss
+    url: "https://huggingface.co/blog/feed.xml"
+    authority_score: 80
+    tags: [engineering, huggingface, models]
+    enabled: false  # SSL错误
+
+  - name: "arXiv cs.AI (Recent)"
+    type: rss
+    url: "http://export.arxiv.org/rss/cs.AI"
+    authority_score: 70
+    tags: [research, arxiv, ai]
+    enabled: true
+
+  - name: "arXiv cs.LG (Recent)"
+    type: rss
+    url: "http://export.arxiv.org/rss/cs.LG"
+    authority_score: 70
+    tags: [research, arxiv, ml]
+    enabled: true
+
+  - name: "arXiv cs.CL (Recent)"
+    type: rss
+    url: "http://export.arxiv.org/rss/cs.CL"
+    authority_score: 70
+    tags: [research, arxiv, nlp]
+    enabled: true
+
+# ============================================
+# B. 工程/框架源
+# ============================================
+engineering:
+  - name: "LangChain Blog"
+    type: rss
+    url: "https://blog.langchain.dev/rss/"
+    authority_score: 85
+    tags: [engineering, langchain, agent, rag]
+    enabled: true
+
+  - name: "LangChain Releases"
+    type: github
+    url: "langchain-ai/langchain"
+    authority_score: 85
+    tags: [engineering, langchain, release]
+    enabled: true
+
+  - name: "LlamaIndex Blog"
+    type: rss
+    url: "https://www.llamaindex.ai/blog/rss.xml"
+    authority_score: 80
+    tags: [engineering, llamaindex, rag]
+    enabled: false  # 已失效: 404 Not Found
+
+  - name: "LlamaIndex Releases"
+    type: github
+    url: "run-llama/llama_index"
+    authority_score: 80
+    tags: [engineering, llamaindex, release]
+    enabled: true
+
+  - name: "vLLM Releases"
+    type: github
+    url: "vllm-project/vllm"
+    authority_score: 90
+    tags: [engineering, inference, vllm]
+    enabled: true
+
+  - name: "Transformers Releases"
+    type: github
+    url: "huggingface/transformers"
+    authority_score: 90
+    tags: [engineering, huggingface, transformers]
+    enabled: true
+
+  - name: "PyTorch Blog"
+    type: rss
+    url: "https://pytorch.org/blog/rss.xml"
+    authority_score: 90
+    tags: [engineering, pytorch, framework]
+    enabled: false  # 已失效: 404 Not Found
+
+  - name: "PyTorch Releases"
+    type: github
+    url: "pytorch/pytorch"
+    authority_score: 90
+    tags: [engineering, pytorch, release]
+    enabled: true
+
+  - name: "TensorFlow Blog"
+    type: rss
+    url: "https://blog.tensorflow.org/feeds/posts/default"
+    authority_score: 85
+    tags: [engineering, tensorflow, framework]
+    enabled: true
+
+  - name: "NVIDIA AI Blog"
+    type: rss
+    url: "https://blogs.nvidia.com/feed/"
+    authority_score: 85
+    tags: [engineering, nvidia, infra, cuda]
+    enabled: true
+
+# ============================================
+# C. 产品/平台更新源
+# ============================================
+products:
+  - name: "OpenAI Changelog"
+    type: rss
+    url: "https://openai.com/api/changelog/rss.xml"
+    authority_score: 95
+    tags: [product, openai, api, changelog]
+    enabled: false  # 已失效: 403 Forbidden
+
+  - name: "Anthropic Changelog"
+    type: rss
+    url: "https://docs.anthropic.com/en/api/changelog/rss.xml"
+    authority_score: 95
+    tags: [product, anthropic, api, changelog]
+    enabled: false  # 解析错误，返回0条数据
+
+  - name: "Google Cloud AI Blog"
+    type: rss
+    url: "https://cloud.google.com/blog/products/ai-machine-learning/rss"
+    authority_score: 85
+    tags: [product, gcp, cloud]
+    enabled: false  # 解析错误，返回0条数据
+
+  - name: "AWS Machine Learning Blog"
+    type: rss
+    url: "https://aws.amazon.com/blogs/machine-learning/feed/"
+    authority_score: 85
+    tags: [product, aws, cloud]
+    enabled: true
+
+  - name: "Azure AI Blog"
+    type: rss
+    url: "https://azure.microsoft.com/en-us/blog/topics/ai-machine-learning/feed/"
+    authority_score: 80
+    tags: [product, azure, cloud]
+    enabled: false  # 已失效: 404 Not Found
+
+# ============================================
+# D. 评测/趋势源
+# ============================================
+evaluation:
+  - name: "Papers with Code Trending"
+    type: rss
+    url: "https://paperswithcode.com/latest/rss"
+    authority_score: 75
+    tags: [evaluation, research, benchmark]
+    enabled: false  # SSL错误
+
+  - name: "LMSYS Chatbot Arena"
+    type: github
+    url: "lm-sys/FastChat"
+    authority_score: 80
+    tags: [evaluation, benchmark, leaderboard]
+    enabled: true
+
+# ============================================
+# E. 社区/生态源
+# ============================================
+community:
+  - name: "LangChain AI Blog"
+    type: rss
+    url: "https://blog.langchain.dev/rss/"
+    authority_score: 80
+    tags: [community, langchain]
+    enabled: true
+
+  - name: "Replicate Blog"
+    type: rss
+    url: "https://replicate.com/blog/rss.xml"
+    authority_score: 75
+    tags: [community, inference, deployment]
+    enabled: false  # 已失效: 404 Not Found
+
+  - name: "Modal Blog"
+    type: rss
+    url: "https://modal.com/blog/rss.xml"
+    authority_score: 75
+    tags: [community, infra, deployment]
+    enabled: false  # 已失效: 404 Not Found
+
+  - name: "Weights & Biases Blog"
+    type: rss
+    url: "https://wandb.ai/site/rss.xml"
+    authority_score: 75
+    tags: [community, mlops, training]
+    enabled: false  # SSL错误
+
+# ============================================
+# F. 关键GitHub仓库 (用于Release追踪)
+# ============================================
+github_repos:
+  - name: "OpenAI Python SDK"
+    type: github
+    url: "openai/openai-python"
+    authority_score: 90
+    tags: [sdk, openai, python]
+    enabled: true
+
+  - name: "Anthropic Python SDK"
+    type: github
+    url: "anthropics/anthropic-sdk-python"
+    authority_score: 90
+    tags: [sdk, anthropic, python]
+    enabled: true
+
+  - name: "LangGraph"
+    type: github
+    url: "langchain-ai/langgraph"
+    authority_score: 85
+    tags: [agent, langchain, framework]
+    enabled: true
+
+  - name: "Instructor"
+    type: github
+    url: "jxnl/instructor"
+    authority_score: 75
+    tags: [engineering, structured-output, llm]
+    enabled: true
+
+  - name: "LiteLLM"
+    type: github
+    url: "BerriAI/litellm"
+    authority_score: 75
+    tags: [engineering, proxy, api]
+    enabled: true
+
+  - name: "Ollama"
+    type: github
+    url: "ollama/ollama"
+    authority_score: 80
+    tags: [inference, local, deployment]
+    enabled: true
+
+  - name: "llama.cpp"
+    type: github
+    url: "ggerganov/llama.cpp"
+    authority_score: 85
+    tags: [inference, cpp, optimization]
+    enabled: true
+
+  - name: "FlashAttention"
+    type: github
+    url: "Dao-AILab/flash-attention"
+    authority_score: 90
+    tags: [research, optimization, attention]
+    enabled: true
+
+# ============================================
+# 说明：
+# - type支持: rss (RSS/Atom), github (GitHub Releases), html (自定义HTML抓取)
+# - authority_score: 0-100，影响最终评分
+# - tags: 用于自动分类和过滤
+# - enabled: false 可临时禁用某个源
+#
+# 新增源的方法见 DESIGN.md "5.1 新增信息源"
+# ============================================
