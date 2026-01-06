@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from . import classify, dedup, ingest, publish, score, storage, summarize
+from . import classify, dedup, ingest, notify, publish, score, storage, summarize
 from .utils import Config, get_logger, setup_logger
 
 
@@ -116,6 +116,17 @@ def run_daily(args):
         report_path = publish.generate_daily_report(items, str(output_dir), datetime.now(), output_config)
 
         logger.info(f"✅ 日报已生成: {report_path}")
+
+        # 8. 发送通知
+        if not args.dry_run and not args.no_notify:
+            logger.info("步骤 8/8: 发送通知")
+            notify_config = config.get_notify_config()
+            results = notify.send_notifications(items, "daily", datetime.now(), notify_config)
+            for channel, success in results.items():
+                if success:
+                    logger.info(f"✅ {channel} 通知发送成功")
+                else:
+                    logger.warning(f"❌ {channel} 通知发送失败")
 
         # 保存到数据库
         if not args.dry_run:
@@ -293,6 +304,11 @@ def main():
         "--no-summary",
         action="store_true",
         help="跳过LLM摘要生成",
+    )
+    daily_parser.add_argument(
+        "--no-notify",
+        action="store_true",
+        help="跳过通知发送",
     )
     daily_parser.add_argument(
         "--export-jsonl",

@@ -197,3 +197,11 @@ class Config:
             时区语言配置字典
         """
         return self.rules.get("locale", {})
+
+    def get_notify_config(self) -> Dict[str, Any]:
+        """获取通知配置
+
+        Returns:
+            通知配置字典
+        """
+        return self.rules.get("notify", {})
