@@ -278,13 +278,13 @@ def _code_demo(item: Item) -> str:
     text = f"{item.title} {item.ai_summary or item.summary or ''} {' '.join(item.key_points)}".lower()
 
     if "gpt-" in text or "claude" in text or "gemini" in text or "llama" in text:
-        return "resp = client.chat.completions.create(model='gpt-5.5', messages=[{'role':'user','content':'修复登录Bug并补3条测试用例'}])"
+        return "client=OpenAI(api_key=os.getenv('OPENAI_API_KEY'), base_url=os.getenv('OPENAI_BASE_URL')); resp=client.chat.completions.create(model=os.getenv('OPENAI_MODEL','gpt-5.4'), messages=[{'role':'user','content':'修复登录Bug并补3条测试用例'}])"
     if "automation" in text or "schedule" in text or "trigger" in text:
         return "python -m src.main daily"
     if any(word in text for word in ["evaluation", "benchmark", "testing", "test"]):
-        return "for case in cases: print(run_new(case), run_old(case))"
+        return "for case in cases: print(client.chat.completions.create(model=os.getenv('OPENAI_MODEL','gpt-5.4'), messages=[{'role':'user','content':case}]).choices[0].message.content)"
     if any(word in text for word in ["api", "sdk", "release", "launch"]):
-        return "client.chat.completions.create(model='gpt-5.5', messages=[{'role':'user','content':'写一个最小 FastAPI 接口'}])"
+        return "client=OpenAI(api_key=os.getenv('OPENAI_API_KEY'), base_url=os.getenv('OPENAI_BASE_URL')); client.chat.completions.create(model=os.getenv('OPENAI_MODEL','gpt-5.4'), messages=[{'role':'user','content':'写一个最小 FastAPI 接口'}])"
     return ""
 
 
