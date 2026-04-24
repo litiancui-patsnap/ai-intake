@@ -221,6 +221,7 @@ class FeishuBotSender(NotificationSender):
                 f"{summary}\n"
                 f"直接结论：{_watch_point(item)}\n"
                 f"你现在可以做：{_integration_note(item)}\n"
+                f"简单 demo：{_demo_hint(item)}\n"
                 f"[查看原文]({item.url}) | 主题：{tags}"
             )
             elements.append({"tag": "div", "text": {"tag": "lark_md", "content": item_text}})
@@ -410,6 +411,24 @@ def _integration_note(item: Item) -> str:
     if any(word in text for word in ["security", "vulnerability", "cve", "policy"]):
         return "先看你现在的权限、安全审核和日志记录会不会受影响；如果会，就优先排进本周处理。"
     return "今天先不用做事；只有当它和你正在做的开发、测试或接入直接相关时，再回来处理。"
+
+
+def _demo_hint(item: Item) -> str:
+    text = f"{item.title} {item.ai_summary or item.summary or ''} {' '.join(item.key_points)}".lower()
+
+    if "gpt-" in text or "claude" in text or "gemini" in text or "llama" in text:
+        return "拿同一个 Bug 描述，分别让新旧模型生成修复方案和测试用例，直接比结果。"
+    if "system card" in text:
+        return "升级前先看这一篇，重点找“限制”“不适用场景”“高风险用法”三部分。"
+    if "automation" in text or "schedule" in text or "trigger" in text:
+        return "把“每天整理 3 条 AI 新闻”这件事设成自动任务，先跑一天看是否省时间。"
+    if any(word in text for word in ["evaluation", "benchmark", "testing", "test"]):
+        return "选 3 道你常测的题，分别跑新旧方案，看正确率和稳定性。"
+    if any(word in text for word in ["api", "sdk", "release", "launch"]):
+        return "先在内部脚本里接一个最小调用，确认能跑通，再决定要不要正式接。"
+    if any(word in text for word in ["security", "vulnerability", "cve", "policy"]):
+        return "对照你当前权限、日志和审核流程看一遍，找出会受影响的地方。"
+    return "如果这条和你手头工作无关，就先跳过，不用专门做演示。"
 
 
 __all__ = [
