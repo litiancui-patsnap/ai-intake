@@ -6,6 +6,7 @@ from ..utils.logger import get_logger
 from .base import BaseFetcher
 from .github_fetcher import GitHubFetcher
 from .models import Item
+from .news_search_fetcher import NewsSearchFetcher
 from .rss_fetcher import RSSFetcher
 
 logger = get_logger("ingest")
@@ -14,6 +15,7 @@ logger = get_logger("ingest")
 FETCHERS: Dict[str, type] = {
     "rss": RSSFetcher,
     "github": GitHubFetcher,
+    "news_search": NewsSearchFetcher,
 }
 
 
@@ -76,4 +78,12 @@ def fetch_all(sources: List[Dict[str, Any]], config: Dict[str, Any]) -> List[Ite
     return all_items
 
 
-__all__ = ["Item", "BaseFetcher", "RSSFetcher", "GitHubFetcher", "create_fetcher", "fetch_all"]
+__all__ = [
+    "Item",
+    "BaseFetcher",
+    "RSSFetcher",
+    "GitHubFetcher",
+    "NewsSearchFetcher",
+    "create_fetcher",
+    "fetch_all",
+]

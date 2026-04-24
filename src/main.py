@@ -5,8 +5,35 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - compatibility when dependency is not installed yet
+    load_dotenv = None
+
 from . import classify, dedup, ingest, notify, publish, score, storage, summarize
 from .utils import Config, get_logger, setup_logger
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if load_dotenv is not None:
+    load_dotenv(PROJECT_ROOT / ".env")
+else:
+    def _load_simple_env(path: Path, override: bool = False) -> None:
+        if not path.exists():
+            return
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if override or key not in os.environ:
+                os.environ[key] = value
+
+    import os
+
+    _load_simple_env(PROJECT_ROOT / ".env")
 
 
 def parse_time_delta(time_str: str) -> timedelta:

@@ -2,13 +2,32 @@ name: Daily AI Digest
 
 on:
   schedule:
-    # UTC 23:00 = JST 08:00 (Asia/Tokyo)
-    - cron: '0 23 * * *'
-  workflow_dispatch:  # 允许手动触发
+    # 北京时间 08:30 = UTC 00:30
+    - cron: "30 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-intake-daily
+  cancel-in-progress: false
 
 jobs:
   generate-daily-report:
     runs-on: ubuntu-latest
+    environment: personal
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Shanghai
+      PYTHONUTF8: "1"
+      AI_INTAKE_LLM_PROVIDER: openai_compatible
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+      FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+      FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
 
     steps:
       - name: Checkout repository
@@ -17,33 +36,19 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Run daily digest
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python -m src.main daily --verbose
+      - name: Run daily digest and send Feishu
+        run: python -m src.main daily --verbose
 
-      - name: Upload daily report
+      - name: Upload daily report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: daily-report-${{ github.run_number }}
           path: outputs/daily/*.md
-          retention-days: 90
-
-      - name: Commit reports (optional)
-        if: false  # 设置为true可启用自动commit
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add outputs/
-          git commit -m "📊 Daily digest: $(date +'%Y-%m-%d')" || echo "No changes to commit"
-          git push
+          retention-days: 30

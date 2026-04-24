@@ -1,6 +1,8 @@
-"""发布模块"""
+"""日报和周报发布模块。"""
 
-from collections import defaultdict
+from __future__ import annotations
+
+from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
@@ -14,409 +16,365 @@ logger = get_logger("publish")
 def generate_daily_report(
     items: List[Item], output_dir: str, date: datetime, config: Dict[str, Any]
 ) -> str:
-    """生成日报
+    """生成日报 Markdown 文件。"""
+    logger.info("开始生成日报，输入条目数: %s", len(items))
 
-    Args:
-        items: Item列表
-        output_dir: 输出目录
-        date: 日期
-        config: 输出配置
-
-    Returns:
-        输出文件路径
-    """
-    logger.info(f"开始生成日报: {len(items)} 条数据")
-
-    # 创建输出目录
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+    filepath = output_path / f"{date.strftime('%Y-%m-%d')}.md"
 
-    # 生成文件名
-    filename = f"{date.strftime('%Y-%m-%d')}.md"
-    filepath = output_path / filename
+    max_items = config.get("max_items", 20)
+    min_score = config.get("min_score", 60)
+    must_read_max = config.get("must_read_max", 3)
+    top_focus_count = config.get("top_focus_count", 3)
+    markdown_config = config.get("markdown", {})
+    topic_item_limit = markdown_config.get("topic_item_limit", 4)
 
-    # 按配置筛选
-    max_items = config.get("max_items", 40)
-    min_score = config.get("min_score", 40)
+    filtered_items = [item for item in items if item.score >= min_score]
+    filtered_items = filtered_items[:max_items]
 
-    # 过滤低分
-    items = [item for item in items if item.score >= min_score]
+    must_read_items = [item for item in filtered_items if item.is_must_read]
+    focus_items = must_read_items[:must_read_max] if must_read_items else filtered_items[:top_focus_count]
+    focus_urls = {item.url for item in focus_items}
+    remaining_items = [item for item in filtered_items if item.url not in focus_urls]
 
-    # 限制数量
-    items = items[:max_items]
+    items_by_topic: Dict[str, List[Item]] = defaultdict(list)
+    for item in remaining_items:
+        items_by_topic[_primary_topic(item)].append(item)
 
-    # 分组
-    must_read_items = [item for item in items if item.is_must_read]
-    regular_items = [item for item in items if not item.is_must_read]
-
-    # 按主题分组
-    items_by_topic = defaultdict(list)
-    for item in regular_items:
-        if item.tags:
-            # 使用第一个标签作为主题
-            items_by_topic[item.tags[0]].append(item)
-        else:
-            items_by_topic["其他"].append(item)
-
-    # 生成Markdown
     md_content = _generate_daily_markdown(
-        date, must_read_items, items_by_topic, len(items), config
+        date=date,
+        focus_items=focus_items,
+        items_by_topic=items_by_topic,
+        total_count=len(filtered_items),
+        must_read_count=len(must_read_items),
+        topic_item_limit=topic_item_limit,
+        config=config,
     )
 
-    # 写入文件
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(md_content)
-
-    logger.info(f"日报已生成: {filepath}")
-
+    filepath.write_text(md_content, encoding="utf-8")
+    logger.info("日报已写入 %s", filepath)
     return str(filepath)
 
 
 def _generate_daily_markdown(
+    *,
     date: datetime,
-    must_read_items: List[Item],
+    focus_items: List[Item],
     items_by_topic: Dict[str, List[Item]],
     total_count: int,
+    must_read_count: int,
+    topic_item_limit: int,
     config: Dict[str, Any],
 ) -> str:
-    """生成日报Markdown内容
+    markdown_config = config.get("markdown", {})
+    lines: List[str] = []
 
-    Args:
-        date: 日期
-        must_read_items: 必读列表
-        items_by_topic: 按主题分组的Item
-        total_count: 总数
-        config: 输出配置
-
-    Returns:
-        Markdown字符串
-    """
-    lines = []
-
-    # Header
-    lines.append(f"# AI信息日报 - {date.strftime('%Y-%m-%d')}")
+    lines.append(f"# AI 日报 - {date.strftime('%Y-%m-%d')}")
     lines.append("")
-    est_reading_time = total_count * 0.3  # 每条约0.3分钟
-    lines.append(
-        f"📊 总计: {total_count}条 | 🔥 必读: {len(must_read_items)}条 | ⏰ 预计阅读: {int(est_reading_time)}分钟"
-    )
-    lines.append("")
-    lines.append("---")
+    est_reading_time = max(1, int(total_count * 0.3))
+    lines.append(f"共筛出 {total_count} 条，必看 {must_read_count} 条，预计阅读 {est_reading_time} 分钟。")
     lines.append("")
 
-    # Must Read Section
-    if must_read_items:
-        lines.append("## 🔥 必读 (Must Read)")
+    overview = _generate_daily_overview(focus_items, items_by_topic)
+    lines.append("## 今日结论")
+    lines.append("")
+    lines.append(overview["summary"])
+    lines.append("")
+    if overview["top_topics"]:
+        lines.append("重点方向：" + " | ".join(overview["top_topics"]))
+        lines.append("")
+    if overview["watch_points"]:
+        lines.append("重点关注：")
+        for point in overview["watch_points"]:
+            lines.append(f"- {point}")
         lines.append("")
 
-        for item in must_read_items:
-            lines.extend(_format_item(item, config))
-
-        lines.append("---")
+    lines.append("## 必看")
+    lines.append("")
+    if focus_items:
+        for idx, item in enumerate(focus_items, 1):
+            lines.extend(_format_focus_item(item, idx, markdown_config))
+    else:
+        lines.append("- 当前没有条目达到展示阈值。")
         lines.append("")
 
-    # Topic Sections
-    for topic, items in sorted(items_by_topic.items(), key=lambda x: -len(x[1])):
-        # 获取主题的display_name（如果有）
-        lines.append(f"## 📚 {topic}")
+    if items_by_topic:
+        lines.append("## 其他值得扫一眼")
         lines.append("")
+        for topic, topic_items in sorted(items_by_topic.items(), key=lambda x: (-len(x[1]), x[0])):
+            lines.append(f"### {topic}")
+            lines.append("")
+            for item in topic_items[:topic_item_limit]:
+                lines.extend(_format_compact_item(item))
+            lines.append("")
 
-        for item in items:
-            lines.extend(_format_item(item, config))
-
+    if focus_items:
+        lines.append("## 一句话判断")
+        lines.append("")
+        lines.append(_one_line_takeaway(focus_items))
         lines.append("")
 
     return "\n".join(lines)
 
 
-def _format_item(item: Item, config: Dict[str, Any]) -> List[str]:
-    """格式化单个Item
+def _generate_daily_overview(
+    focus_items: List[Item],
+    items_by_topic: Dict[str, List[Item]],
+) -> Dict[str, List[str] | str]:
+    topic_counts = Counter()
+    for topic, items in items_by_topic.items():
+        topic_counts[topic] += len(items)
+    for item in focus_items:
+        topic_counts[_primary_topic(item)] += 1
 
-    Args:
-        item: Item
-        config: 输出配置
+    top_topics = [f"{topic}（{count}）" for topic, count in topic_counts.most_common(3)]
+    if focus_items:
+        summary = "今天主要围绕" + " / ".join(_headline_phrase(item) for item in focus_items[:3]) + "展开。"
+    else:
+        summary = "今天以常规 AI 工程和产品更新为主，没有特别突出的单点突破。"
 
-    Returns:
-        Markdown行列表
-    """
+    watch_points: List[str] = []
+    for item in focus_items[:3]:
+        point = _watch_point(item)
+        if point not in watch_points:
+            watch_points.append(point)
+
+    return {"summary": summary, "top_topics": top_topics, "watch_points": watch_points}
+
+
+def _format_focus_item(item: Item, idx: int, markdown_config: Dict[str, Any]) -> List[str]:
     lines = []
-    markdown_config = config.get("markdown", {})
+    lines.append(f"### {idx}. [{item.title}]({item.url})")
+    lines.append("")
+    lines.append(
+        f"- 来源：{item.source} | 时间：{item.published.strftime('%Y-%m-%d')} | 评分：{item.score:.0f}"
+    )
+    lines.append(f"- 发生了什么：{_short_summary(item, markdown_config.get('max_summary_length', 180))}")
+    lines.append(f"- 为什么重要：{_why_it_matters(item)}")
+    lines.append(f"- 你该关注：{_watch_point(item)}")
 
-    # 标题和链接
-    lines.append(f"### [{item.title}]({item.url})")
-
-    # 元信息
-    pub_date = item.published.strftime("%Y-%m-%d %H:%M")
-    score_str = f"{item.score:.0f}/100"
-    meta = f"- **来源**: {item.source} | **发布**: {pub_date} | **评分**: {score_str}"
-    lines.append(meta)
-
-    # 摘要
-    summary = item.ai_summary or item.summary or item.title
-    lines.append(f"- **摘要**: {summary}")
-
-    # 工程师要点
-    if item.key_points and markdown_config.get("include_action", True):
-        lines.append("- **工程师要点**:")
-        for point in item.key_points:
+    if item.key_points:
+        lines.append("- 关键点：")
+        for point in item.key_points[:3]:
             lines.append(f"  - {point}")
-
-    # 行动建议
-    if item.action and markdown_config.get("include_action", True):
-        lines.append(f"- **行动建议**: {item.action}")
-
-    # 评分详解
-    if markdown_config.get("include_score_breakdown", True) and item.score_breakdown:
-        breakdown = item.score_breakdown
-        reasons = breakdown.get("reasons", [])
-        if reasons:
-            reason_text = " | ".join(reasons[:3])  # 最多显示3条
-            lines.append(f"- **评分详解**: {reason_text}")
+    elif item.action and markdown_config.get("include_action", True):
+        lines.append(f"- 关键点：{item.action}")
 
     lines.append("")
-
     return lines
+
+
+def _format_compact_item(item: Item) -> List[str]:
+    return [
+        f"- [{item.title}]({item.url})",
+        f"  - {item.source} | {item.published.strftime('%Y-%m-%d')} | 评分 {item.score:.0f}",
+        f"  - {_short_summary(item, 120)}",
+    ]
+
+
+def _short_summary(item: Item, max_len: int) -> str:
+    summary = item.ai_summary or item.summary or item.title
+    summary = " ".join(summary.split())
+    if len(summary) <= max_len:
+        return summary
+    return summary[: max_len - 3].rstrip() + "..."
+
+
+def _primary_topic(item: Item) -> str:
+    return item.tags[0] if item.tags else "其他"
+
+
+def _headline_phrase(item: Item) -> str:
+    text = f"{item.title} {item.ai_summary or item.summary or ''}".lower()
+    if any(word in text for word in ["safety", "security", "policy", "guardrail", "teen"]):
+        return "AI 安全与治理"
+    if any(word in text for word in ["commerce", "shopping", "comparison", "discovery"]):
+        return "商业化工作流扩展"
+    if any(word in text for word in ["foundation", "investment", "fund", "community"]):
+        return "生态布局与资源投入"
+    if any(word in text for word in ["release", "launch", "preview", "available", "api", "sdk"]):
+        return "新模型或新产品发布"
+    return "重要平台更新"
+
+
+def _why_it_matters(item: Item) -> str:
+    text = f"{item.title} {item.ai_summary or item.summary or ''}".lower()
+    if any(word in text for word in ["safety", "teen", "security", "governance", "policy"]):
+        return "这类变化可能会逐步变成合规、审核或产品安全的默认基线。"
+    if any(word in text for word in ["commerce", "shopping", "comparison", "product discovery"]):
+        return "这说明助手正在从问答入口走向交易、推荐和转化入口。"
+    if any(word in text for word in ["foundation", "investment", "fund", "community"]):
+        return "这更像长期生态和战略信号，而不是立刻要改代码的工程变更。"
+    if any(word in text for word in ["release", "launch", "preview", "api", "sdk"]):
+        return "这会直接影响工具选型、升级计划和后续接入策略。"
+    return "这条更新值得持续跟，因为它可能影响后续产品和工程判断。"
+
+
+def _watch_point(item: Item) -> str:
+    text = f"{item.title} {item.ai_summary or item.summary or ''}".lower()
+    if any(word in text for word in ["safety", "teen", "security", "policy"]):
+        return "重点看它会不会继续变成默认 API 策略、审核工具或接入门槛。"
+    if any(word in text for word in ["commerce", "shopping", "comparison", "discovery"]):
+        return "重点看它会不会继续扩展到完整 Agent、推荐链路或交易闭环。"
+    if any(word in text for word in ["foundation", "investment", "fund"]):
+        return "重点看后续是否跟进具体项目、资助计划或治理工具。"
+    if any(word in text for word in ["api", "sdk", "release", "launch", "preview"]):
+        return "重点看价格、文档、破坏性变更和是否达到生产可用。"
+    return "重点看下一次官方更新里有没有更具体的落地范围和工程影响。"
+
+
+def _one_line_takeaway(focus_items: List[Item]) -> str:
+    phrases = []
+    for item in focus_items[:3]:
+        phrase = _headline_phrase(item)
+        if phrase not in phrases:
+            phrases.append(phrase)
+    return "今天真正值得盯的，不是信息量，而是" + "、".join(phrases) + "。"
 
 
 def generate_weekly_report(
     items: List[Item], output_dir: str, week_start: datetime, config: Dict[str, Any]
 ) -> str:
-    """生成周报
+    """生成周报 Markdown 文件。"""
+    logger.info("开始生成周报，输入条目数: %s", len(items))
 
-    Args:
-        items: Item列表（一周内的）
-        output_dir: 输出目录
-        week_start: 周开始日期
-        config: 输出配置
-
-    Returns:
-        输出文件路径
-    """
-    logger.info(f"开始生成周报: {len(items)} 条数据")
-
-    # 创建输出目录
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    # 生成文件名 (ISO周号)
     year, week_num, _ = week_start.isocalendar()
-    filename = f"{year}-W{week_num:02d}.md"
-    filepath = output_path / filename
+    filepath = output_path / f"{year}-W{week_num:02d}.md"
 
-    # 按配置筛选
     max_items = config.get("max_items", 120)
     min_score = config.get("min_score", 50)
 
-    # 过滤低分
-    items = [item for item in items if item.score >= min_score]
+    filtered_items = [item for item in items if item.score >= min_score]
+    filtered_items = filtered_items[:max_items]
 
-    # 限制数量
-    items = items[:max_items]
+    md_content = _generate_weekly_markdown(week_start, filtered_items, config)
+    filepath.write_text(md_content, encoding="utf-8")
 
-    # 生成Markdown
-    md_content = _generate_weekly_markdown(week_start, items, config)
-
-    # 写入文件
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write(md_content)
-
-    logger.info(f"周报已生成: {filepath}")
-
+    logger.info("周报已写入 %s", filepath)
     return str(filepath)
 
 
 def _generate_weekly_markdown(
     week_start: datetime, items: List[Item], config: Dict[str, Any]
 ) -> str:
-    """生成周报Markdown内容
-
-    Args:
-        week_start: 周开始日期
-        items: Item列表
-        config: 输出配置
-
-    Returns:
-        Markdown字符串
-    """
-    lines = []
+    """生成周报 Markdown 内容。"""
+    lines: List[str] = []
 
     year, week_num, _ = week_start.isocalendar()
-
-    # Header
-    lines.append(f"# AI信息周报 - {year} W{week_num:02d}")
+    lines.append(f"# AI 周报 - {year} W{week_num:02d}")
     lines.append("")
 
-    # 本周总览
-    lines.append("## 本周总览")
+    lines.append("## 本周概览")
     lines.append("")
-    overview = _generate_overview(items)
-    lines.append(overview)
+    lines.append(_generate_overview(items))
     lines.append("")
     lines.append("---")
     lines.append("")
 
-    # 本周趋势 Top 5
     trend_count = config.get("trend_count", 5)
     trends = _extract_trends(items, trend_count)
-
-    lines.append(f"## 🔥 本周趋势 Top {trend_count}")
+    lines.append(f"## 本周重点趋势 Top {trend_count}")
     lines.append("")
-
-    for i, trend in enumerate(trends, 1):
-        lines.append(f"### {i}. {trend['title']}")
+    for idx, trend in enumerate(trends, 1):
+        lines.append(f"### {idx}. {trend['title']}")
         lines.append("")
         for item in trend["items"]:
             lines.append(f"- [{item.title}]({item.url})")
-        lines.append(f"**趋势**: {trend['description']}")
+        lines.append(f"- 趋势说明：{trend['description']}")
         lines.append("")
 
     lines.append("---")
     lines.append("")
 
-    # 本周必做 Top 3
     must_do_count = config.get("must_do_count", 3)
     must_dos = _extract_must_dos(items, must_do_count)
-
-    lines.append(f"## ✅ 本周必做 Top {must_do_count}")
+    lines.append(f"## 本周应关注 Top {must_do_count}")
     lines.append("")
-
-    for i, item in enumerate(must_dos, 1):
-        lines.append(f"{i}. **{item.action or '关注此更新'}**: {item.title} - {item.source}")
-
+    for idx, item in enumerate(must_dos, 1):
+        lines.append(f"{idx}. **{item.action or '持续关注这条更新'}**：{item.title} - {item.source}")
     lines.append("")
     lines.append("---")
     lines.append("")
 
-    # 下周关注清单
     watchlist_count = config.get("watchlist_count", 5)
     watchlist = _generate_watchlist(items, watchlist_count)
-
-    lines.append("## 👀 下周关注清单")
+    lines.append("## 下周关注清单")
     lines.append("")
-
     for item in watchlist:
         lines.append(f"- [ ] {item}")
-
     lines.append("")
 
     return "\n".join(lines)
 
 
 def _generate_overview(items: List[Item]) -> str:
-    """生成本周总览
-
-    Args:
-        items: Item列表
-
-    Returns:
-        总览文本
-    """
-    # 统计主题分布
-    tag_counts = defaultdict(int)
+    """生成周报总览。"""
+    tag_counts = Counter()
     for item in items:
         for tag in item.tags:
             tag_counts[tag] += 1
 
-    top_topics = sorted(tag_counts.items(), key=lambda x: -x[1])[:5]
-    topics_text = "、".join([f"{t[0]}({t[1]}条)" for t in top_topics])
-
-    # 统计高分条目
+    top_topics = [f"{topic}（{count}）" for topic, count in tag_counts.most_common(5)]
     high_score_count = len([item for item in items if item.score >= 80])
+    topic_text = " | ".join(top_topics) if top_topics else "暂无明显主题集中"
 
-    overview = f"本周共采集 {len(items)} 条AI领域信息，高分条目(score≥80) {high_score_count} 条。"
-    overview += f"主要主题包括: {topics_text}。"
-
-    return overview
+    return (
+        f"本周共筛出 {len(items)} 条 AI 更新，其中高分条目 {high_score_count} 条。"
+        f"主要主题包括：{topic_text}。"
+    )
 
 
 def _extract_trends(items: List[Item], count: int) -> List[Dict[str, Any]]:
-    """提取趋势
-
-    Args:
-        items: Item列表
-        count: 趋势数量
-
-    Returns:
-        趋势列表
-    """
-    # 按主题聚合
-    topic_items = defaultdict(list)
+    """提取周报趋势。"""
+    topic_items: Dict[str, List[Item]] = defaultdict(list)
     for item in items:
         for tag in item.tags:
             topic_items[tag].append(item)
 
-    # 计算每个主题的总分
     topic_scores = {
-        topic: sum(item.score for item in items_list)
-        for topic, items_list in topic_items.items()
+        topic: sum(entry.score for entry in entries)
+        for topic, entries in topic_items.items()
     }
-
-    # Top N主题
     top_topics = sorted(topic_scores.items(), key=lambda x: -x[1])[:count]
 
     trends = []
     for topic, _ in top_topics:
-        items_list = topic_items[topic]
-        # 取该主题下最高分的3条
-        top_items = sorted(items_list, key=lambda x: -x.score)[:3]
-
-        # 生成趋势描述
-        description = f"{topic}领域本周共{len(items_list)}条更新，重点关注上述进展"
-
+        entries = topic_items[topic]
+        top_items = sorted(entries, key=lambda x: -x.score)[:3]
         trends.append(
             {
                 "title": topic,
                 "items": top_items,
-                "description": description,
+                "description": f"{topic} 本周共有 {len(entries)} 条值得跟进的更新。",
             }
         )
-
     return trends
 
 
 def _extract_must_dos(items: List[Item], count: int) -> List[Item]:
-    """提取必做事项
-
-    Args:
-        items: Item列表
-        count: 数量
-
-    Returns:
-        必做Item列表
-    """
-    # 优先选择must_read + 高分 + 有明确action的
+    """提取本周应关注条目。"""
     must_read = [item for item in items if item.is_must_read and item.action]
-
-    # 按分数排序
     must_read.sort(key=lambda x: -x.score)
-
     return must_read[:count]
 
 
 def _generate_watchlist(items: List[Item], count: int) -> List[str]:
-    """生成关注清单
-
-    Args:
-        items: Item列表
-        count: 数量
-
-    Returns:
-        关注清单文本列表
-    """
-    # 提取可能在下周有后续的事项
-    watchlist = []
-
+    """生成下周关注清单。"""
+    watchlist: List[str] = []
     keywords = ["upcoming", "soon", "next", "beta", "rc", "preview", "roadmap"]
 
     for item in items:
         text = (item.title + " " + (item.summary or "")).lower()
-        if any(kw in text for kw in keywords):
+        if any(keyword in text for keyword in keywords):
             watchlist.append(f"{item.source}: {item.title}")
 
-    # 如果不足，补充高分条目
     if len(watchlist) < count:
-        high_score = sorted(items, key=lambda x: -x.score)
-        for item in high_score:
+        high_score_items = sorted(items, key=lambda x: -x.score)
+        for item in high_score_items:
             entry = f"{item.source}: {item.title}"
             if entry not in watchlist:
                 watchlist.append(entry)

@@ -2,13 +2,32 @@ name: Weekly AI Digest
 
 on:
   schedule:
-    # UTC 00:00 Monday = JST 09:00 Monday
-    - cron: '0 0 * * 1'
-  workflow_dispatch:  # 允许手动触发
+    # 北京时间 周一 09:00 = UTC 周一 01:00
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-intake-weekly
+  cancel-in-progress: false
 
 jobs:
   generate-weekly-report:
     runs-on: ubuntu-latest
+    environment: personal
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Shanghai
+      PYTHONUTF8: "1"
+      AI_INTAKE_LLM_PROVIDER: openai_compatible
+      OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+      FEISHU_WEBHOOK_URL: ${{ secrets.FEISHU_WEBHOOK_URL }}
+      FEISHU_APP_ID: ${{ secrets.FEISHU_APP_ID }}
+      FEISHU_APP_SECRET: ${{ secrets.FEISHU_APP_SECRET }}
 
     steps:
       - name: Checkout repository
@@ -17,33 +36,19 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          python-version: "3.11"
+          cache: "pip"
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      - name: Run weekly digest
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python -m src.main weekly --verbose
+      - name: Run weekly digest and send Feishu
+        run: python -m src.main weekly --verbose
 
-      - name: Upload weekly report
+      - name: Upload weekly report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: weekly-report-${{ github.run_number }}
           path: outputs/weekly/*.md
-          retention-days: 365
-
-      - name: Commit reports (optional)
-        if: false  # 设置为true可启用自动commit
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add outputs/
-          git commit -m "📊 Weekly digest: Week $(date +'%Y-W%V')" || echo "No changes to commit"
-          git push
+          retention-days: 90

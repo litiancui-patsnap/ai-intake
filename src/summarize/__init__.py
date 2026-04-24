@@ -4,6 +4,8 @@ import json
 import re
 from typing import Any, Dict, List, Optional
 
+import requests
+
 from ..ingest.models import Item
 from ..utils.logger import get_logger
 
@@ -41,19 +43,26 @@ class LLMSummarizer(BaseSummarizer):
         self.temperature = config.get("temperature", 0.3)
         self.timeout = config.get("timeout", 30)
         self.api_key = config.get("api_key")
+        self.base_url = config.get("base_url")
 
-        if not self.api_key:
+        if self.provider in {"openai", "openai_compatible", "anthropic"} and not self.api_key:
             raise ValueError(f"缺少{self.provider} API密钥")
 
         # 初始化客户端
-        if self.provider == "openai":
+        if self.provider in {"openai", "openai_compatible"}:
             from openai import OpenAI
 
-            self.client = OpenAI(api_key=self.api_key, timeout=self.timeout)
+            client_kwargs = {"api_key": self.api_key, "timeout": self.timeout}
+            if self.base_url:
+                client_kwargs["base_url"] = self.base_url
+            self.client = OpenAI(**client_kwargs)
         elif self.provider == "anthropic":
             from anthropic import Anthropic
 
             self.client = Anthropic(api_key=self.api_key, timeout=self.timeout)
+        elif self.provider == "ollama":
+            self.client = None
+            self.base_url = (self.base_url or "http://localhost:11434").rstrip("/")
         else:
             raise ValueError(f"不支持的LLM提供商: {self.provider}")
 
@@ -72,7 +81,7 @@ class LLMSummarizer(BaseSummarizer):
             prompt = self._build_prompt(item, content)
 
             # 调用LLM
-            if self.provider == "openai":
+            if self.provider in {"openai", "openai_compatible"}:
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=[{"role": "user", "content": prompt}],
@@ -88,6 +97,20 @@ class LLMSummarizer(BaseSummarizer):
                     messages=[{"role": "user", "content": prompt}],
                 )
                 result_text = response.content[0].text
+            elif self.provider == "ollama":
+                response = requests.post(
+                    f"{self.base_url}/api/chat",
+                    json={
+                        "model": self.model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "stream": False,
+                        "options": {"temperature": self.temperature},
+                    },
+                    timeout=self.timeout,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                result_text = payload.get("message", {}).get("content", "")
             else:
                 raise ValueError(f"不支持的提供商: {self.provider}")
 

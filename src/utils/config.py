@@ -150,7 +150,11 @@ class Config:
             输出配置字典
         """
         output = self.rules.get("output", {})
-        return output.get(report_type, {})
+        report_config = dict(output.get(report_type, {}))
+        markdown_config = output.get("markdown", {})
+        if markdown_config:
+            report_config["markdown"] = markdown_config
+        return report_config
 
     def get_preferences(self) -> Dict[str, Any]:
         """获取个人偏好配置
@@ -166,12 +170,49 @@ class Config:
         Returns:
             LLM配置字典
         """
-        llm_config = self.rules.get("llm", {})
-        # 从环境变量读取API密钥
-        if llm_config.get("provider") == "openai":
+        llm_config = dict(self.rules.get("llm", {}))
+
+        env_provider = os.getenv("AI_INTAKE_LLM_PROVIDER")
+        env_model = os.getenv("AI_INTAKE_LLM_MODEL")
+        if env_provider:
+            llm_config["provider"] = env_provider
+        if env_model:
+            llm_config["model"] = env_model
+
+        provider = llm_config.get("provider")
+
+        # 从环境变量读取API密钥 / 地址
+        if provider in {"openai", "openai_compatible"}:
+            if not llm_config.get("model"):
+                openai_model = os.getenv("OPENAI_MODEL")
+                if openai_model:
+                    llm_config["model"] = openai_model
             llm_config["api_key"] = os.getenv("OPENAI_API_KEY")
-        elif llm_config.get("provider") == "anthropic":
+            base_url = os.getenv("OPENAI_BASE_URL")
+            temperature = os.getenv("OPENAI_TEMPERATURE")
+            max_tokens = os.getenv("OPENAI_MODEL_TOKENS")
+            if base_url:
+                llm_config["base_url"] = base_url
+            if temperature:
+                llm_config["temperature"] = float(temperature)
+            if max_tokens:
+                llm_config["max_tokens"] = int(max_tokens)
+        elif provider == "anthropic":
             llm_config["api_key"] = os.getenv("ANTHROPIC_API_KEY")
+        elif provider == "ollama":
+            llm_config["api_key"] = os.getenv("OLLAMA_API_KEY", "")
+            base_url = os.getenv("OLLAMA_BASE_URL")
+            model = os.getenv("OLLAMA_MODEL")
+            temperature = os.getenv("OLLAMA_TEMPERATURE")
+            max_tokens = os.getenv("OLLAMA_MODEL_TOKENS")
+            if base_url:
+                llm_config["base_url"] = base_url
+            if model:
+                llm_config["model"] = model
+            if temperature:
+                llm_config["temperature"] = float(temperature)
+            if max_tokens:
+                llm_config["max_tokens"] = int(max_tokens)
         return llm_config
 
     def get_dedup_config(self) -> Dict[str, Any]:
