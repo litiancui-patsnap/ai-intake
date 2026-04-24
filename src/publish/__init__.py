@@ -153,6 +153,7 @@ def _format_focus_item(item: Item, idx: int, markdown_config: Dict[str, Any]) ->
     lines.append(f"- 发生了什么：{_short_summary(item, markdown_config.get('max_summary_length', 180))}")
     lines.append(f"- 为什么重要：{_why_it_matters(item)}")
     lines.append(f"- 直接结论：{_watch_point(item)}")
+    lines.append(f"- 怎么纳入：{_integration_note(item)}")
 
     if item.key_points:
         lines.append("- 关键点：")
@@ -226,6 +227,25 @@ def _watch_point(item: Item) -> str:
     if any(word in text for word in ["evaluation", "benchmark", "testing", "test"]):
         return "可优先评估是否纳入研发验收、回归或自动化测试。"
     return "暂不跟进，除非它直接影响现有研发流程。"
+
+
+def _integration_note(item: Item) -> str:
+    text = f"{item.title} {item.ai_summary or item.summary or ''} {' '.join(item.key_points)}".lower()
+    conclusion = _watch_point(item)
+
+    if "研发验收" in conclusion or "自动化测试" in conclusion or any(
+        word in text for word in ["evaluation", "benchmark", "testing", "test", "system card"]
+    ):
+        return "先挑 3 到 5 个核心研发任务，加入升级前后对比集，观察正确率、稳定性和失败样例。"
+    if "回归" in conclusion:
+        return "放进现有回归集，固定提示词、输入样例和期望输出，每次模型升级后重跑。"
+    if "poc" in conclusion.lower() or any(word in text for word in ["performance", "faster", "latency"]):
+        return "先做小样本 PoC，对比延迟、成功率、成本和输出质量，再决定是否扩大。"
+    if any(word in text for word in ["release", "launch", "api", "sdk", "gpt-", "claude", "gemini", "llama"]):
+        return "先选一个低风险场景灰度接入，记录成本、效果、兼容性，再决定是否进生产。"
+    if any(word in text for word in ["security", "vulnerability", "cve", "policy"]):
+        return "先核对是否影响现有权限、审核、日志和安全策略，再决定是否进入变更流程。"
+    return "先记录到本周跟踪清单，只有在它影响现有研发、测试或接入时再投入。"
 
 
 def _one_line_takeaway(focus_items: List[Item]) -> str:
