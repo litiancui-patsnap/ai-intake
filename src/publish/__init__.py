@@ -155,6 +155,9 @@ def _format_focus_item(item: Item, idx: int, markdown_config: Dict[str, Any]) ->
     lines.append(f"- 直接结论：{_watch_point(item)}")
     lines.append(f"- 你现在可以做：{_integration_note(item)}")
     lines.append(f"- 简单 demo：{_demo_hint(item)}")
+    code_demo = _code_demo(item)
+    if code_demo:
+        lines.append(f"- 最小代码：`{code_demo}`")
 
     if item.key_points:
         lines.append("- 关键点：")
@@ -269,6 +272,20 @@ def _demo_hint(item: Item) -> str:
     if any(word in text for word in ["security", "vulnerability", "cve", "policy"]):
         return "对照你当前权限、日志和审核流程看一遍，找出会受影响的地方。"
     return "如果这条和你手头工作无关，就先跳过，不用专门做演示。"
+
+
+def _code_demo(item: Item) -> str:
+    text = f"{item.title} {item.ai_summary or item.summary or ''} {' '.join(item.key_points)}".lower()
+
+    if "gpt-" in text or "claude" in text or "gemini" in text or "llama" in text:
+        return "resp = client.chat.completions.create(model='gpt-5.5', messages=[{'role':'user','content':'修复登录Bug并补3条测试用例'}])"
+    if "automation" in text or "schedule" in text or "trigger" in text:
+        return "python -m src.main daily"
+    if any(word in text for word in ["evaluation", "benchmark", "testing", "test"]):
+        return "for case in cases: print(run_new(case), run_old(case))"
+    if any(word in text for word in ["api", "sdk", "release", "launch"]):
+        return "client.chat.completions.create(model='gpt-5.5', messages=[{'role':'user','content':'写一个最小 FastAPI 接口'}])"
+    return ""
 
 
 def _one_line_takeaway(focus_items: List[Item]) -> str:
