@@ -396,16 +396,16 @@ def _integration_note(item: Item) -> str:
     if "研发验收" in conclusion or "自动化测试" in conclusion or any(
         word in text for word in ["evaluation", "benchmark", "testing", "test", "system card"]
     ):
-        return "先挑 3 到 5 个核心研发任务，加入升级前后对比集，观察正确率、稳定性和失败样例。"
+        return "先拿你现在最常做的 3 到 5 个任务试一遍，再和现在用的方案比结果，看看是否更准、更稳。"
     if "回归" in conclusion:
-        return "放进现有回归集，固定提示词、输入样例和期望输出，每次模型升级后重跑。"
+        return "把它放进你已有的固定测试题里，以后每次模型升级都重新跑一次，看看结果有没有变差。"
     if "poc" in conclusion.lower() or any(word in text for word in ["performance", "faster", "latency"]):
-        return "先做小样本 PoC，对比延迟、成功率、成本和输出质量，再决定是否扩大。"
+        return "先小范围试用一天，重点看速度、效果和成本，如果明显更好，再扩大使用。"
     if any(word in text for word in ["release", "launch", "api", "sdk", "gpt-", "claude", "gemini", "llama"]):
-        return "先选一个低风险场景灰度接入，记录成本、效果、兼容性，再决定是否进生产。"
+        return "先选一个影响最小的小场景接进去试，确认好用、价格能接受，再考虑正式替换。"
     if any(word in text for word in ["security", "vulnerability", "cve", "policy"]):
-        return "先核对是否影响现有权限、审核、日志和安全策略，再决定是否进入变更流程。"
-    return "先记录到本周跟踪清单，只有在它影响现有研发、测试或接入时再投入。"
+        return "先检查它会不会影响你现在的权限、安全审核和日志记录，有影响就优先处理。"
+    return "先记下来，不用立刻做；等它真的影响你现在的开发、测试或接入时再投入。"
 
 
 __all__ = [
