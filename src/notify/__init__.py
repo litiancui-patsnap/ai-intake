@@ -220,7 +220,7 @@ class FeishuBotSender(NotificationSender):
                 f"`{label}` `{item.source}` `{item.published.strftime('%Y-%m-%d')}` `评分 {item.score:.0f}`\n"
                 f"{summary}\n"
                 f"直接结论：{_watch_point(item)}\n"
-                f"怎么纳入：{_integration_note(item)}\n"
+                f"你现在可以做：{_integration_note(item)}\n"
                 f"[查看原文]({item.url}) | 主题：{tags}"
             )
             elements.append({"tag": "div", "text": {"tag": "lark_md", "content": item_text}})
@@ -393,19 +393,23 @@ def _integration_note(item: Item) -> str:
     text = f"{item.title} {item.ai_summary or item.summary or ''} {' '.join(item.key_points)}".lower()
     conclusion = _watch_point(item)
 
+    if "system card" in text:
+        return "今天先不用做任何接入；只有当你准备升级这个模型时，再回来看它的限制、风险和不适用场景。"
+    if "automation" in text or "schedule" in text or "trigger" in text:
+        return "如果你现在有重复手工活，比如整理日报、周报、监控结果，就挑 1 个先自动化；没有就先跳过。"
     if "研发验收" in conclusion or "自动化测试" in conclusion or any(
         word in text for word in ["evaluation", "benchmark", "testing", "test", "system card"]
     ):
-        return "先拿你现在最常做的 3 到 5 个任务试一遍，再和现在用的方案比结果，看看是否更准、更稳。"
+        return "今天先选 3 个你最常见的任务试跑一遍，比如写代码、改 Bug、生成测试用例；如果有 2 个明显更好，再安排小范围试用。"
     if "回归" in conclusion:
-        return "把它放进你已有的固定测试题里，以后每次模型升级都重新跑一次，看看结果有没有变差。"
+        return "把它加入你平时固定会重跑的测试题，下次模型升级时再跑一次，重点看结果有没有变差。"
     if "poc" in conclusion.lower() or any(word in text for word in ["performance", "faster", "latency"]):
-        return "先小范围试用一天，重点看速度、效果和成本，如果明显更好，再扩大使用。"
+        return "先试用半天到一天，只看三件事：速度有没有更快、结果有没有更好、成本有没有高太多。"
     if any(word in text for word in ["release", "launch", "api", "sdk", "gpt-", "claude", "gemini", "llama"]):
-        return "先选一个影响最小的小场景接进去试，确认好用、价格能接受，再考虑正式替换。"
+        return "先不要全量替换，只挑一个最不重要的小场景试用，比如内部工具或个人任务，确认好用再扩大。"
     if any(word in text for word in ["security", "vulnerability", "cve", "policy"]):
-        return "先检查它会不会影响你现在的权限、安全审核和日志记录，有影响就优先处理。"
-    return "先记下来，不用立刻做；等它真的影响你现在的开发、测试或接入时再投入。"
+        return "先看你现在的权限、安全审核和日志记录会不会受影响；如果会，就优先排进本周处理。"
+    return "今天先不用做事；只有当它和你正在做的开发、测试或接入直接相关时，再回来处理。"
 
 
 __all__ = [
