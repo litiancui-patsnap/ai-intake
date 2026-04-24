@@ -150,11 +150,18 @@ class LLMSummarizer(BaseSummarizer):
         Returns:
             提示词
         """
-        return f"""你是一个资深AI工程师。请阅读以下AI领域的信息并输出：
+        return f"""你是一个偏工程实战的 AI 研发负责人。请阅读以下 AI 信息并输出可直接执行的中文结论：
 
-1. 中文摘要 (100-180字，重点说明技术要点和影响)
-2. 工程师要点 (3条bullet points，每条不超过30字，聚焦可操作的技术细节)
-3. 行动建议 (1条，"我该做什么"或"何时关注"，不超过40字)
+1. 中文摘要 (100-160字，说明它是什么，以及对研发、测试、接入、回归的直接影响)
+2. 工程师要点 (3条，每条不超过28字，只写工程上最值得记的点)
+3. 行动建议 (1条，不超过36字，必须是直接结论)
+
+行动建议写法要求：
+- 优先写：建议本周做 PoC / 暂不跟进 / 仅记录
+- 或写：可用于研发验收 / 不适合回归测试 / 可纳入自动化测试候选
+- 或写：需要评估升级影响 / 暂时不用投入接入
+- 不要写“继续观察”“关注后续”“等后续更新”这类空话
+- 如果信息不足，也要明确写“暂不跟进，等官方文档/价格/API细节”
 
 标题: {item.title}
 来源: {item.source}
@@ -165,7 +172,7 @@ class LLMSummarizer(BaseSummarizer):
 {{
   "summary": "中文摘要...",
   "key_points": ["要点1", "要点2", "要点3"],
-  "action": "行动建议"
+  "action": "直接结论"
 }}
 
 只输出JSON，不要其他内容。"""
@@ -276,16 +283,18 @@ class ExtractiveSummarizer(BaseSummarizer):
         """
         text = (item.title + " " + (item.summary or "")).lower()
 
-        if "release" in text or "available" in text:
-            return "关注新版本，评估升级影响"
-        elif "breaking" in text or "deprecat" in text:
-            return "检查代码兼容性，制定迁移计划"
-        elif "security" in text or "vulnerability" in text:
-            return "立即评估安全影响并更新"
-        elif "performance" in text or "faster" in text:
-            return "评估性能提升，考虑采用"
+        if "benchmark" in text or "evaluation" in text or "testing" in text or "test" in text:
+            return "可纳入研发验收或自动化测试候选"
+        elif "release" in text or "available" in text or "launch" in text:
+            return "建议本周评估升级影响，不急着接入"
+        elif "breaking" in text or "deprecat" in text or "migration" in text:
+            return "需要尽快评估兼容性并排迁移计划"
+        elif "security" in text or "vulnerability" in text or "cve" in text:
+            return "需要立即评估安全影响并安排修复"
+        elif "performance" in text or "faster" in text or "latency" in text:
+            return "建议做小规模性能对比 PoC"
         else:
-            return "了解新功能，评估是否适用"
+            return "暂不跟进，除非它影响现有研发流程"
 
 
 def summarize_batch(items: List[Item], config: Dict[str, Any]) -> List[Item]:

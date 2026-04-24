@@ -152,7 +152,7 @@ def _format_focus_item(item: Item, idx: int, markdown_config: Dict[str, Any]) ->
     )
     lines.append(f"- 发生了什么：{_short_summary(item, markdown_config.get('max_summary_length', 180))}")
     lines.append(f"- 为什么重要：{_why_it_matters(item)}")
-    lines.append(f"- 你该关注：{_watch_point(item)}")
+    lines.append(f"- 直接结论：{_watch_point(item)}")
 
     if item.key_points:
         lines.append("- 关键点：")
@@ -212,16 +212,20 @@ def _why_it_matters(item: Item) -> str:
 
 
 def _watch_point(item: Item) -> str:
+    if item.action:
+        return item.action
     text = f"{item.title} {item.ai_summary or item.summary or ''}".lower()
     if any(word in text for word in ["safety", "teen", "security", "policy"]):
-        return "重点看它会不会继续变成默认 API 策略、审核工具或接入门槛。"
+        return "需要评估是否影响现有安全审核、策略配置和接入门槛。"
     if any(word in text for word in ["commerce", "shopping", "comparison", "discovery"]):
-        return "重点看它会不会继续扩展到完整 Agent、推荐链路或交易闭环。"
+        return "暂不跟进，除非你正在做推荐、导购或交易闭环。"
     if any(word in text for word in ["foundation", "investment", "fund"]):
-        return "重点看后续是否跟进具体项目、资助计划或治理工具。"
+        return "仅记录战略信号，不需要马上投入研发资源。"
     if any(word in text for word in ["api", "sdk", "release", "launch", "preview"]):
-        return "重点看价格、文档、破坏性变更和是否达到生产可用。"
-    return "重点看下一次官方更新里有没有更具体的落地范围和工程影响。"
+        return "建议先评估文档、价格和升级影响，再决定是否接入生产。"
+    if any(word in text for word in ["evaluation", "benchmark", "testing", "test"]):
+        return "可优先评估是否纳入研发验收、回归或自动化测试。"
+    return "暂不跟进，除非它直接影响现有研发流程。"
 
 
 def _one_line_takeaway(focus_items: List[Item]) -> str:

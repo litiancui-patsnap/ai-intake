@@ -178,7 +178,6 @@ class FeishuBotSender(NotificationSender):
             return False
 
         selected = items[: self.max_items]
-        must_read_count = len([item for item in items if item.is_must_read])
         elements: list[dict[str, Any]] = []
 
         image_key = None
@@ -204,9 +203,9 @@ class FeishuBotSender(NotificationSender):
                         f"**今日结论**\n"
                         f"{content}\n\n"
                         f"**重点关注**\n"
-                        f"- 今日共筛出 **{len(items)}** 条\n"
-                        f"- 必看 **{must_read_count}** 条\n"
-                        f"- 飞书卡片只展示前 **{len(selected)}** 条重点"
+                        f"- 今日共处理 **{len(items)}** 条来源内容\n"
+                        f"- 飞书卡片只展示最值得看的 **{len(selected)}** 条\n"
+                        f"- 每条都给出可直接执行结论"
                     ),
                 },
             }
@@ -220,7 +219,7 @@ class FeishuBotSender(NotificationSender):
                 f"**{index}. {item.title}**  \n"
                 f"`{label}` `{item.source}` `{item.published.strftime('%Y-%m-%d')}` `评分 {item.score:.0f}`\n"
                 f"{summary}\n"
-                f"一句话：{_watch_point(item)}\n"
+                f"直接结论：{_watch_point(item)}\n"
                 f"[查看原文]({item.url}) | 主题：{tags}"
             )
             elements.append({"tag": "div", "text": {"tag": "lark_md", "content": item_text}})
@@ -318,7 +317,6 @@ def send_notifications(
         else f"AI 周报 - {date.strftime('%Y-W%W')}"
     )
 
-    must_read_count = len([item for item in items if item.is_must_read])
     focus_items = [item for item in items if item.is_must_read][:3] or items[:3]
     focus_phrases = []
     for item in focus_items:
@@ -328,7 +326,7 @@ def send_notifications(
     focus_text = "、".join(focus_phrases) if focus_phrases else "常规更新"
     content = (
         f"今天主要看 {focus_text}。"
-        f" 建议先看前 {min(3, len(items))} 条，{must_read_count} 条进入必看。"
+        f" 建议先看前 {min(3, len(items))} 条，这几条都已转成可直接执行结论。"
     )
 
     senders: list[tuple[str, NotificationSender]] = []
@@ -374,18 +372,20 @@ def _headline_phrase(item: Item) -> str:
 
 
 def _watch_point(item: Item) -> str:
+    if item.action:
+        return item.action
     text = f"{item.title} {item.ai_summary or item.summary or ''}".lower()
     if any(word in text for word in ["safety", "teen", "security", "policy"]):
-        return "看是否会继续变成默认接入要求或安全基线"
+        return "需要评估是否影响现有安全审核和接入基线"
     if any(word in text for word in ["commerce", "shopping", "comparison", "discovery"]):
-        return "看是否继续延伸到完整转化链路"
+        return "暂不跟进，除非你要做推荐或商业化闭环"
     if any(word in text for word in ["foundation", "investment", "fund"]):
-        return "看后续是否落到具体项目、资助或生态合作"
+        return "仅记录，不需要投入研发接入"
     if any(word in text for word in ["api", "sdk", "release", "launch", "preview"]):
-        return "看价格、文档、破坏性变更和可生产性"
+        return "建议先评估文档、价格和升级影响，再决定是否接入"
     if any(word in text for word in ["evaluation", "benchmark", "testing", "test"]):
-        return "看是否能直接用于研发验收、回归或自动化测试"
-    return "看下一次官方更新里是否给出更明确落地方式"
+        return "可优先评估是否纳入研发验收、回归或自动化测试"
+    return "暂不跟进，除非它直接影响现有研发流程"
 
 
 __all__ = [
